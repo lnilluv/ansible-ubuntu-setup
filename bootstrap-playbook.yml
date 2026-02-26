@@ -38,7 +38,7 @@
         msg: >-
           Bootstrap preflight could not run remote setup.
           If this is a fresh provider image, a forced password rotation may be active.
-          Error: {{ bootstrap_setup_preflight.msg | default(bootstrap_setup_preflight.stderr, true) }}
+          Error: {{ bootstrap_setup_preflight.get('msg', bootstrap_setup_preflight.get('stderr', 'unknown preflight error')) }}
           Resolve by logging in once interactively and changing password, then rerun bootstrap.
       when:
         - bootstrap_setup_preflight.unreachable | default(false) or bootstrap_setup_preflight.failed | default(false)
@@ -51,7 +51,7 @@
           - not (bootstrap_setup_preflight.failed | default(false))
         fail_msg: >-
           Bootstrap connectivity/authentication preflight failed.
-          Error: {{ bootstrap_setup_preflight.msg | default(bootstrap_setup_preflight.stderr, true) }}
+          Error: {{ bootstrap_setup_preflight.get('msg', bootstrap_setup_preflight.get('stderr', 'unknown preflight error')) }}
   roles:
     - role: base_ubuntu_2204
     - role: admin_user

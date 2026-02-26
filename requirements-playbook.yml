@@ -34,7 +34,7 @@
         msg: >-
           Requirements preflight could not run remote setup.
           If this is a fresh provider image, a forced password rotation may be active.
-          Error: {{ requirements_setup_preflight.msg | default(requirements_setup_preflight.stderr, true) }}
+          Error: {{ requirements_setup_preflight.get('msg', requirements_setup_preflight.get('stderr', 'unknown preflight error')) }}
           Resolve by logging in once interactively and changing password, then rerun requirements-playbook.
       when:
         - requirements_setup_preflight.unreachable | default(false) or requirements_setup_preflight.failed | default(false)
@@ -47,7 +47,7 @@
           - not (requirements_setup_preflight.failed | default(false))
         fail_msg: >-
           Requirements connectivity/authentication preflight failed.
-          Error: {{ requirements_setup_preflight.msg | default(requirements_setup_preflight.stderr, true) }}
+          Error: {{ requirements_setup_preflight.get('msg', requirements_setup_preflight.get('stderr', 'unknown preflight error')) }}
   roles:
     - role: base_ubuntu_2204
     - role: admin_user
