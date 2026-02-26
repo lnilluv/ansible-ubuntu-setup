@@ -86,6 +86,9 @@ ansible-playbook -i hosts.yml bootstrap-playbook.yml \
   -e tailscale_authkey="tskey-ephemeral-xxxxx"
 ```
 
+If provider images force an initial password rotation, the playbook now fails early with a clear message
+instead of a generic temp-directory error. Complete one manual login/password change, then rerun bootstrap.
+
 Run lockdown:
 
 ```bash

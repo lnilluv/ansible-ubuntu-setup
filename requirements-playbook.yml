@@ -1,6 +1,6 @@
 - name: Backward-compatible bootstrap alias
   hosts: ubuntu_servers
-  gather_facts: true
+  gather_facts: false
   become: true
   vars_files:
     - group_vars/all.yml
@@ -19,6 +19,33 @@
           - (bootstrap_auth_method != 'password') or (bootstrap_root_password | length > 0)
           - (bootstrap_auth_method != 'auto') or ((bootstrap_ssh_private_key_path | length > 0) or (bootstrap_root_password | length > 0))
         fail_msg: "Set bootstrap auth inputs for key/password mode before running requirements-playbook."
+
+    - name: Preflight remote shell for password expiry lockout
+      ansible.builtin.raw: id -u
+      register: requirements_shell_preflight
+      changed_when: false
+      failed_when: false
+
+    - name: Fail with actionable message when remote password is expired
+      ansible.builtin.fail:
+        msg: >-
+          Requirements playbook cannot continue because the server requires an interactive password update.
+          Remote output: {{ requirements_shell_preflight.stderr | default(requirements_shell_preflight.stdout, true) }}
+          Resolve by SSHing manually and updating password once, then rerun playbook.
+      when:
+        - requirements_shell_preflight.rc != 0
+        - (requirements_shell_preflight.stderr | default('') is search('Your password has expired|Password change required but no TTY available'))
+
+    - name: Fail when requirements shell preflight cannot execute
+      ansible.builtin.assert:
+        that:
+          - requirements_shell_preflight.rc == 0
+        fail_msg: >-
+          Requirements connectivity/authentication preflight failed.
+          Output: {{ requirements_shell_preflight.stderr | default(requirements_shell_preflight.stdout, true) }}
+
+    - name: Gather facts after successful preflight
+      ansible.builtin.setup:
   roles:
     - role: base_ubuntu_2204
     - role: admin_user

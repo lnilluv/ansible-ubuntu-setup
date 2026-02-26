@@ -1,6 +1,6 @@
 - name: Bootstrap Ubuntu 22.04 VPS
   hosts: ubuntu_servers
-  gather_facts: true
+  gather_facts: false
   become: true
   vars_files:
     - group_vars/all.yml
@@ -23,6 +23,35 @@
           - (bootstrap_auth_method != 'password') or (bootstrap_root_password | length > 0)
           - (bootstrap_auth_method != 'auto') or ((bootstrap_ssh_private_key_path | length > 0) or (bootstrap_root_password | length > 0))
         fail_msg: "Missing required runtime variables. See README.md for the required -e values."
+
+    - name: Preflight remote shell for password expiry lockout
+      ansible.builtin.raw: id -u
+      register: bootstrap_shell_preflight
+      changed_when: false
+      failed_when: false
+
+    - name: Fail with actionable message when remote password is expired
+      ansible.builtin.fail:
+        msg: >-
+          Bootstrap cannot continue because the server requires an interactive password update.
+          Remote output: {{ bootstrap_shell_preflight.stderr | default(bootstrap_shell_preflight.stdout, true) }}
+          Resolve by SSHing manually and updating password once, then rerun playbook.
+          Typical messages are: "Your password has expired" or
+          "Password change required but no TTY available".
+      when:
+        - bootstrap_shell_preflight.rc != 0
+        - (bootstrap_shell_preflight.stderr | default('') is search('Your password has expired|Password change required but no TTY available'))
+
+    - name: Fail when bootstrap shell preflight cannot execute
+      ansible.builtin.assert:
+        that:
+          - bootstrap_shell_preflight.rc == 0
+        fail_msg: >-
+          Bootstrap connectivity/authentication preflight failed.
+          Output: {{ bootstrap_shell_preflight.stderr | default(bootstrap_shell_preflight.stdout, true) }}
+
+    - name: Gather facts after successful preflight
+      ansible.builtin.setup:
   roles:
     - role: base_ubuntu_2204
     - role: admin_user
