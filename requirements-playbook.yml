@@ -6,6 +6,7 @@
     - group_vars/all.yml
   vars:
     hardening_phase: bootstrap
+    ansible_connection: paramiko
     ansible_user: "{{ bootstrap_user | default('root') }}"
     ansible_ssh_timeout: "{{ bootstrap_command_timeout_seconds }}"
     ansible_command_timeout: "{{ bootstrap_command_timeout_seconds }}"

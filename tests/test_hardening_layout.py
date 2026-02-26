@@ -100,8 +100,10 @@ class HardeningLayoutTest(unittest.TestCase):
         self.assertIn("--hostname=", content)
 
     def test_group_vars_include_tailscale_hostname(self) -> None:
-        content = (ROOT / "group_vars" / "all.example.yml").read_text(encoding="utf-8")
-        self.assertIn("tailscale_hostname:", content)
+        example = (ROOT / "group_vars" / "all.example.yml").read_text(encoding="utf-8")
+        defaults = (ROOT / "group_vars" / "all.yml").read_text(encoding="utf-8")
+        self.assertIn("tailscale_hostname: prod-vps", example)
+        self.assertIn("tailscale_hostname: prod-vps", defaults)
 
 
 if __name__ == "__main__":
