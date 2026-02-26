@@ -76,8 +76,8 @@ ansible-playbook -i hosts.yml main-playbook.yml \
   -e tailscale_authkey="tskey-ephemeral-xxxxx"
 ```
 
-`main-playbook.yml` discovers the node Tailnet DNS name from `tailscale status --json`
-and uses that host for the lockdown phase (with IPv4 fallback when DNS name is unavailable).
+`main-playbook.yml` discovers the node Tailnet IPv4 from `tailscale ip -4`
+and uses that host for the lockdown phase to avoid DNS-resolution issues on fresh rebuilds.
 
 Run bootstrap:
 

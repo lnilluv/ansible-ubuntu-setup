@@ -13,7 +13,9 @@
 - name: Allow SSH during bootstrap from operator public IP
   ansible.builtin.command: "ufw allow from {{ bootstrap_allowed_ip }} to any port {{ ssh_port }} proto tcp"
   changed_when: false
-  when: hardening_phase == "bootstrap"
+  when:
+    - hardening_phase == "bootstrap"
+    - bootstrap_allowed_ip | length > 0
 
 - name: Allow SSH on tailscale interface only
   ansible.builtin.command: "ufw allow in on tailscale0 from {{ tailscale_ssh_cidr }} to any port {{ ssh_port }} proto tcp"
@@ -22,7 +24,9 @@
 - name: Remove bootstrap SSH rule after lockdown
   ansible.builtin.command: "ufw delete allow from {{ bootstrap_allowed_ip }} to any port {{ ssh_port }} proto tcp"
   changed_when: false
-  when: hardening_phase == "lockdown"
+  when:
+    - hardening_phase == "lockdown"
+    - bootstrap_allowed_ip | length > 0
 
 - name: Allow outgoing TCP ports
   ansible.builtin.command: "ufw allow out {{ item }}/tcp"

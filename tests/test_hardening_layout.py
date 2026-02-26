@@ -33,6 +33,7 @@ class HardeningLayoutTest(unittest.TestCase):
         content = (ROOT / "roles" / "firewall" / "tasks" / "main.yml").read_text(encoding="utf-8")
         self.assertIn("tailscale0", content)
         self.assertIn("bootstrap_allowed_ip", content)
+        self.assertIn("bootstrap_allowed_ip | length > 0", content)
 
     def test_validation_role_exists(self) -> None:
         validation_role = ROOT / "roles" / "validation" / "tasks" / "main.yml"
@@ -69,7 +70,7 @@ class HardeningLayoutTest(unittest.TestCase):
     def test_bootstrap_playbook_supports_password_fallback(self) -> None:
         content = (ROOT / "bootstrap-playbook.yml").read_text(encoding="utf-8")
         self.assertIn("bootstrap_auth_method", content)
-        self.assertIn("ansible_password", content)
+        self.assertIn("ansible_connection: paramiko", content)
 
     def test_bootstrap_playbook_has_password_expiry_guard(self) -> None:
         content = (ROOT / "bootstrap-playbook.yml").read_text(encoding="utf-8")
@@ -81,7 +82,7 @@ class HardeningLayoutTest(unittest.TestCase):
     def test_requirements_playbook_supports_password_fallback(self) -> None:
         content = (ROOT / "requirements-playbook.yml").read_text(encoding="utf-8")
         self.assertIn("bootstrap_auth_method", content)
-        self.assertIn("ansible_password", content)
+        self.assertIn("ansible_connection: paramiko", content)
 
     def test_readme_mentions_password_bootstrap_flow(self) -> None:
         content = (ROOT / "README.md").read_text(encoding="utf-8").lower()
@@ -92,8 +93,8 @@ class HardeningLayoutTest(unittest.TestCase):
         content = (ROOT / "main-playbook.yml").read_text(encoding="utf-8")
         self.assertIn("add_host", content)
         self.assertIn("lockdown_targets", content)
-        self.assertIn("tailscale status --json", content)
-        self.assertIn("DNSName", content)
+        self.assertIn("tailscale ip -4", content)
+        self.assertIn("ansible_host: \"{{ tailscale_ipv4.stdout }}\"", content)
 
     def test_tailscale_role_defines_hostname(self) -> None:
         content = (ROOT / "roles" / "tailscale" / "tasks" / "main.yml").read_text(encoding="utf-8")

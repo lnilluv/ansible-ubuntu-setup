@@ -13,16 +13,7 @@
     ansible_ssh_timeout: "{{ bootstrap_command_timeout_seconds }}"
     ansible_command_timeout: "{{ bootstrap_command_timeout_seconds }}"
   tasks:
-    - name: Read Tailscale status as JSON
-      ansible.builtin.command: tailscale status --json
-      register: tailscale_status_json
-      changed_when: false
-
-    - name: Derive Tailscale DNS endpoint
-      ansible.builtin.set_fact:
-        tailscale_dns_endpoint: "{{ ((tailscale_status_json.stdout | from_json).Self.DNSName | default('')) | regex_replace('\\.$', '') }}"
-
-    - name: Read Tailscale IPv4 fallback endpoint
+    - name: Read Tailscale IPv4 endpoint
       ansible.builtin.command: tailscale ip -4
       register: tailscale_ipv4
       changed_when: false
@@ -31,7 +22,7 @@
       ansible.builtin.add_host:
         name: "lockdown_{{ inventory_hostname }}"
         groups: lockdown_targets
-        ansible_host: "{{ tailscale_dns_endpoint if tailscale_dns_endpoint | length > 0 else tailscale_ipv4.stdout }}"
+        ansible_host: "{{ tailscale_ipv4.stdout }}"
         ansible_user: "{{ admin_user }}"
         ansible_connection: paramiko
         ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path }}"
