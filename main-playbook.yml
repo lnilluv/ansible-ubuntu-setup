@@ -13,16 +13,23 @@
     ansible_ssh_timeout: "{{ bootstrap_command_timeout_seconds }}"
     ansible_command_timeout: "{{ bootstrap_command_timeout_seconds }}"
   tasks:
-    - name: Read Tailscale IPv4 endpoint
-      ansible.builtin.command: tailscale ip -4
-      register: tailscale_ipv4
-      changed_when: false
+    - name: Reuse Tailscale IPv4 discovered during bootstrap
+      ansible.builtin.set_fact:
+        tailscale_ipv4_endpoint: "{{ hostvars[inventory_hostname].tailscale_ipv4.stdout | default('') }}"
+
+    - name: Assert Tailscale IPv4 endpoint is available
+      ansible.builtin.assert:
+        that:
+          - tailscale_ipv4_endpoint | length > 0
+        fail_msg: >-
+          Unable to determine Tailscale IPv4 endpoint from bootstrap results.
+          Ensure the tailscale role completed successfully before lockdown orchestration.
 
     - name: Register lockdown host over tailnet
       ansible.builtin.add_host:
         name: "lockdown_{{ inventory_hostname }}"
         groups: lockdown_targets
-        ansible_host: "{{ tailscale_ipv4.stdout }}"
+        ansible_host: "{{ tailscale_ipv4_endpoint }}"
         ansible_user: "{{ admin_user }}"
         ansible_connection: paramiko
         ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path }}"

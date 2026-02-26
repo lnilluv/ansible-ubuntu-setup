@@ -93,8 +93,8 @@ class HardeningLayoutTest(unittest.TestCase):
         content = (ROOT / "main-playbook.yml").read_text(encoding="utf-8")
         self.assertIn("add_host", content)
         self.assertIn("lockdown_targets", content)
-        self.assertIn("tailscale ip -4", content)
-        self.assertIn("ansible_host: \"{{ tailscale_ipv4.stdout }}\"", content)
+        self.assertIn("hostvars[inventory_hostname].tailscale_ipv4.stdout", content)
+        self.assertIn("tailscale_ipv4_endpoint", content)
 
     def test_tailscale_role_defines_hostname(self) -> None:
         content = (ROOT / "roles" / "tailscale" / "tasks" / "main.yml").read_text(encoding="utf-8")
