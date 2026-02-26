@@ -4,6 +4,15 @@ admin_user: devops
 ssh_port: 22
 tailscale_ssh_cidr: 100.64.0.0/10
 timezone: UTC
+install_portfolio_runtime: true
+portfolio_dev_packages:
+  - git
+  - make
+  - jq
+  - htop
+  - tmux
+  - python3-venv
+  - python3-pip
 
 # Required runtime inputs
 target_vps_ip: "203.0.113.10"

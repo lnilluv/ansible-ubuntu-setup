@@ -34,6 +34,14 @@ ansible-galaxy collection install ansible.posix
 
 Base defaults live in `group_vars/all.yml`.
 
+By default, bootstrap also installs portfolio runtime tooling:
+
+- Docker Engine (`docker-ce`, `docker-ce-cli`, `containerd.io`)
+- Docker plugins (`docker buildx`, `docker compose`)
+- Dev tools (`git`, `make`, `jq`, `htop`, `tmux`, `python3-venv`, `python3-pip`)
+
+Set `install_portfolio_runtime: false` to skip this layer.
+
 Copy `group_vars/all.example.yml` values into runtime parameters. Do not commit secrets.
 
 Required runtime values:
@@ -70,6 +78,15 @@ Optional compatibility wrapper:
 
 ```bash
 ansible-playbook -i hosts.yml main-playbook.yml -e ...
+```
+
+Verify runtime tooling on VPS:
+
+```bash
+docker --version
+docker compose version
+python3 -m venv --help
+id {{ admin_user }}
 ```
 
 ## Recovery / rollback

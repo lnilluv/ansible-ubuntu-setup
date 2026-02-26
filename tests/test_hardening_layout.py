@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 import unittest
 
 
@@ -46,6 +45,20 @@ class HardeningLayoutTest(unittest.TestCase):
         self.assertIn("tailscale", content)
         self.assertIn("bootstrap", content)
         self.assertIn("lockdown", content)
+
+    def test_portfolio_runtime_role_exists(self) -> None:
+        runtime_role = ROOT / "roles" / "portfolio_runtime" / "tasks" / "main.yml"
+        self.assertTrue(runtime_role.exists())
+
+    def test_bootstrap_includes_portfolio_runtime_role(self) -> None:
+        content = (ROOT / "bootstrap-playbook.yml").read_text(encoding="utf-8")
+        self.assertIn("- role: portfolio_runtime", content)
+
+    def test_readme_documents_docker_runtime_install(self) -> None:
+        content = (ROOT / "README.md").read_text(encoding="utf-8").lower()
+        self.assertIn("docker", content)
+        self.assertIn("docker compose", content)
+        self.assertIn("python3-venv", content)
 
 
 if __name__ == "__main__":

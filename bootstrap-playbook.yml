@@ -21,6 +21,8 @@
   roles:
     - role: base_ubuntu_2204
     - role: admin_user
+    - role: portfolio_runtime
+      when: install_portfolio_runtime | bool
     - role: ssh
     - role: tailscale
     - role: firewall
