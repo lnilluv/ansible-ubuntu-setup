@@ -64,6 +64,7 @@ class HardeningLayoutTest(unittest.TestCase):
         content = (ROOT / "group_vars" / "all.example.yml").read_text(encoding="utf-8")
         self.assertIn("bootstrap_auth_method:", content)
         self.assertIn("bootstrap_root_password:", content)
+        self.assertIn("bootstrap_command_timeout_seconds:", content)
 
     def test_bootstrap_playbook_supports_password_fallback(self) -> None:
         content = (ROOT / "bootstrap-playbook.yml").read_text(encoding="utf-8")
@@ -73,9 +74,9 @@ class HardeningLayoutTest(unittest.TestCase):
     def test_bootstrap_playbook_has_password_expiry_guard(self) -> None:
         content = (ROOT / "bootstrap-playbook.yml").read_text(encoding="utf-8")
         self.assertIn("gather_facts: false", content)
-        self.assertIn("Password change required but no TTY available", content)
-        self.assertIn("Your password has expired", content)
-        self.assertIn("ansible.builtin.raw", content)
+        self.assertIn("ansible.builtin.setup", content)
+        self.assertIn("forced password rotation", content)
+        self.assertIn("Failed to create temporary directory", content)
 
     def test_requirements_playbook_supports_password_fallback(self) -> None:
         content = (ROOT / "requirements-playbook.yml").read_text(encoding="utf-8")

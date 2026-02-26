@@ -1,6 +1,7 @@
 bootstrap_user: root
 bootstrap_ssh_port: 22
 bootstrap_auth_method: auto
+bootstrap_command_timeout_seconds: 20
 admin_user: devops
 ssh_port: 22
 tailscale_ssh_cidr: 100.64.0.0/10

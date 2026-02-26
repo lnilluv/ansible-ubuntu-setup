@@ -7,6 +7,8 @@
   vars:
     hardening_phase: bootstrap
     ansible_user: "{{ bootstrap_user | default('root') }}"
+    ansible_ssh_timeout: "{{ bootstrap_command_timeout_seconds }}"
+    ansible_command_timeout: "{{ bootstrap_command_timeout_seconds }}"
     ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path if bootstrap_auth_method in ['auto', 'key'] and (bootstrap_ssh_private_key_path | length > 0) else '' }}"
     ansible_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else '' }}"
     ansible_become_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else '' }}"
@@ -24,34 +26,32 @@
           - (bootstrap_auth_method != 'auto') or ((bootstrap_ssh_private_key_path | length > 0) or (bootstrap_root_password | length > 0))
         fail_msg: "Missing required runtime variables. See README.md for the required -e values."
 
-    - name: Preflight remote shell for password expiry lockout
-      ansible.builtin.raw: id -u
-      register: bootstrap_shell_preflight
-      changed_when: false
+    - name: Gather facts preflight
+      ansible.builtin.setup:
+      become: false
+      register: bootstrap_setup_preflight
       failed_when: false
+      ignore_unreachable: true
 
-    - name: Fail with actionable message when remote password is expired
+    - name: Fail with actionable message when setup preflight cannot run
       ansible.builtin.fail:
         msg: >-
-          Bootstrap cannot continue because the server requires an interactive password update.
-          Remote output: {{ bootstrap_shell_preflight.stderr | default(bootstrap_shell_preflight.stdout, true) }}
-          Resolve by SSHing manually and updating password once, then rerun playbook.
-          Typical messages are: "Your password has expired" or
-          "Password change required but no TTY available".
+          Bootstrap preflight could not run remote setup.
+          If this is a fresh provider image, a forced password rotation may be active.
+          Error: {{ bootstrap_setup_preflight.msg | default(bootstrap_setup_preflight.stderr, true) }}
+          Resolve by logging in once interactively and changing password, then rerun bootstrap.
       when:
-        - bootstrap_shell_preflight.rc != 0
-        - (bootstrap_shell_preflight.stderr | default('') is search('Your password has expired|Password change required but no TTY available'))
+        - bootstrap_setup_preflight.unreachable | default(false) or bootstrap_setup_preflight.failed | default(false)
+        - (bootstrap_setup_preflight.msg | default('')) is search('Failed to create temporary directory')
 
-    - name: Fail when bootstrap shell preflight cannot execute
+    - name: Assert setup preflight succeeded
       ansible.builtin.assert:
         that:
-          - bootstrap_shell_preflight.rc == 0
+          - not (bootstrap_setup_preflight.unreachable | default(false))
+          - not (bootstrap_setup_preflight.failed | default(false))
         fail_msg: >-
           Bootstrap connectivity/authentication preflight failed.
-          Output: {{ bootstrap_shell_preflight.stderr | default(bootstrap_shell_preflight.stdout, true) }}
-
-    - name: Gather facts after successful preflight
-      ansible.builtin.setup:
+          Error: {{ bootstrap_setup_preflight.msg | default(bootstrap_setup_preflight.stderr, true) }}
   roles:
     - role: base_ubuntu_2204
     - role: admin_user

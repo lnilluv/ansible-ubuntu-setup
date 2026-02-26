@@ -56,6 +56,7 @@ Required runtime values:
 - `bootstrap_allowed_ip`: your current public IP that can SSH during bootstrap.
 - `ssh_pubkey_path`: path to your public key on macOS host.
 - `bootstrap_auth_method`: `auto`, `key`, or `password`.
+- `bootstrap_command_timeout_seconds`: timeout used for early bootstrap checks.
 - `bootstrap_ssh_private_key_path`: private key path for initial SSH.
 - `bootstrap_root_password`: root password for password fallback.
 - `tailscale_authkey`: auth key used by `tailscale up`.

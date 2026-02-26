@@ -7,6 +7,8 @@
   vars:
     hardening_phase: bootstrap
     ansible_user: "{{ bootstrap_user | default('root') }}"
+    ansible_ssh_timeout: "{{ bootstrap_command_timeout_seconds }}"
+    ansible_command_timeout: "{{ bootstrap_command_timeout_seconds }}"
     ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path if bootstrap_auth_method in ['auto', 'key'] and (bootstrap_ssh_private_key_path | length > 0) else '' }}"
     ansible_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else '' }}"
     ansible_become_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else '' }}"
@@ -20,32 +22,32 @@
           - (bootstrap_auth_method != 'auto') or ((bootstrap_ssh_private_key_path | length > 0) or (bootstrap_root_password | length > 0))
         fail_msg: "Set bootstrap auth inputs for key/password mode before running requirements-playbook."
 
-    - name: Preflight remote shell for password expiry lockout
-      ansible.builtin.raw: id -u
-      register: requirements_shell_preflight
-      changed_when: false
+    - name: Gather facts preflight
+      ansible.builtin.setup:
+      become: false
+      register: requirements_setup_preflight
       failed_when: false
+      ignore_unreachable: true
 
-    - name: Fail with actionable message when remote password is expired
+    - name: Fail with actionable message when setup preflight cannot run
       ansible.builtin.fail:
         msg: >-
-          Requirements playbook cannot continue because the server requires an interactive password update.
-          Remote output: {{ requirements_shell_preflight.stderr | default(requirements_shell_preflight.stdout, true) }}
-          Resolve by SSHing manually and updating password once, then rerun playbook.
+          Requirements preflight could not run remote setup.
+          If this is a fresh provider image, a forced password rotation may be active.
+          Error: {{ requirements_setup_preflight.msg | default(requirements_setup_preflight.stderr, true) }}
+          Resolve by logging in once interactively and changing password, then rerun requirements-playbook.
       when:
-        - requirements_shell_preflight.rc != 0
-        - (requirements_shell_preflight.stderr | default('') is search('Your password has expired|Password change required but no TTY available'))
+        - requirements_setup_preflight.unreachable | default(false) or requirements_setup_preflight.failed | default(false)
+        - (requirements_setup_preflight.msg | default('')) is search('Failed to create temporary directory')
 
-    - name: Fail when requirements shell preflight cannot execute
+    - name: Assert setup preflight succeeded
       ansible.builtin.assert:
         that:
-          - requirements_shell_preflight.rc == 0
+          - not (requirements_setup_preflight.unreachable | default(false))
+          - not (requirements_setup_preflight.failed | default(false))
         fail_msg: >-
           Requirements connectivity/authentication preflight failed.
-          Output: {{ requirements_shell_preflight.stderr | default(requirements_shell_preflight.stdout, true) }}
-
-    - name: Gather facts after successful preflight
-      ansible.builtin.setup:
+          Error: {{ requirements_setup_preflight.msg | default(requirements_setup_preflight.stderr, true) }}
   roles:
     - role: base_ubuntu_2204
     - role: admin_user
