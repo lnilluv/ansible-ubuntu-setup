@@ -1,0 +1,28 @@
+- name: Ensure sshusers group exists
+  ansible.builtin.group:
+    name: sshusers
+    state: present
+
+- name: Ensure admin user exists with locked password
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: "sudo,sshusers"
+    append: true
+    shell: /bin/bash
+    create_home: true
+    password_lock: true
+
+- name: Install authorized key for admin user
+  ansible.posix.authorized_key:
+    user: "{{ admin_user }}"
+    key: "{{ lookup('file', ssh_pubkey_path) }}"
+    state: present
+
+- name: Grant passwordless sudo for admin user
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-{{ admin_user }}"
+    content: "{{ admin_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    mode: "0440"
+    owner: root
+    group: root
+    validate: "visudo -cf %s"

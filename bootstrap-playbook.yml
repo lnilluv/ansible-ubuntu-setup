@@ -1,0 +1,30 @@
+- name: Bootstrap Ubuntu 22.04 VPS
+  hosts: ubuntu_servers
+  gather_facts: true
+  become: true
+  vars_files:
+    - group_vars/all.yml
+  vars:
+    hardening_phase: bootstrap
+    ansible_user: "{{ bootstrap_user | default('root') }}"
+    ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path }}"
+  pre_tasks:
+    - name: Ensure required bootstrap variables are present
+      ansible.builtin.assert:
+        that:
+          - target_vps_ip | length > 0
+          - bootstrap_allowed_ip | length > 0
+          - ssh_pubkey_path | length > 0
+          - tailscale_authkey | length > 0
+          - bootstrap_ssh_private_key_path | length > 0
+        fail_msg: "Missing required runtime variables. See README.md for the required -e values."
+  roles:
+    - role: base_ubuntu_2204
+    - role: admin_user
+    - role: ssh
+    - role: tailscale
+    - role: firewall
+    - role: unattended-upgrades
+    - role: password-quality
+    - role: sysctl_hardening
+    - role: auditd

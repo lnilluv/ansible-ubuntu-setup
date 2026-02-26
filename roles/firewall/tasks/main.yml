@@ -1,127 +1,39 @@
+- name: Reset ufw to a known state
+  ansible.builtin.command: ufw --force reset
+  changed_when: false
 
-    - name: default config for ufw
-      become: true
-      ufw:
-        state: enabled
-        logging: on
-      notify: restart ufw service
+- name: Set default deny incoming
+  ansible.builtin.command: ufw default deny incoming
+  changed_when: false
 
-    - name: ufw - default deny in
-      become: true
-      ufw:
-        policy: deny
-        direction: incoming
-      notify: restart ufw service
+- name: Set default allow outgoing
+  ansible.builtin.command: ufw default allow outgoing
+  changed_when: false
 
-    - name: ufw - default deny out
-      become: true
-      ufw:
-        policy: deny
-        direction: outgoing
-      notify: restart ufw service
+- name: Allow SSH during bootstrap from operator public IP
+  ansible.builtin.command: "ufw allow from {{ bootstrap_allowed_ip }} to any port {{ ssh_port }} proto tcp"
+  changed_when: false
+  when: hardening_phase == "bootstrap"
 
-    - name: ufw - configure ssh rule
-      become: true
-      ufw:
-        rule: limit
-        direction: in
-        to_port: "{{ ssh_port }}"
-      notify: restart ufw service
+- name: Allow SSH on tailscale interface only
+  ansible.builtin.command: "ufw allow in on tailscale0 from {{ tailscale_ssh_cidr }} to any port {{ ssh_port }} proto tcp"
+  changed_when: false
 
-    - name: ufw - allow outgoing ports
-      become: true
-      ufw: 
-        rule: allow
-        direction: out
-        to_port: "{{ item }}"
-      with_items:
-        - "53"
-        - "123"
-        - "80"
-        - "443"
-        - "{{ mail_port }}" #outgoing mail port
-      notify: restart ufw service
+- name: Remove bootstrap SSH rule after lockdown
+  ansible.builtin.command: "ufw delete allow from {{ bootstrap_allowed_ip }} to any port {{ ssh_port }} proto tcp"
+  changed_when: false
+  when: hardening_phase == "lockdown"
 
-    - name: configure psad
-      become: true
-      lineinfile:
-        dest: /etc/psad/psad.conf
-        regexp: "{{ item.regexp }}"
-        line: "{{ item.line }}"
-      loop:
-        - { regexp: '^EMAIL_ADDRESSES', line: 'EMAIL_ADDRESSES {{ mail_to }};' }
-        - { regexp: '^EXPECT_TCP_OPTIONS', line: 'EXPECT_TCP_OPTIONS Y;'}
-        - { regexp: '^ENABLE_PSADWATCHD', line: 'ENABLE_PSADWATCHD Y;'}
-        - { regexp: '^ENABLE_AUTO_IDS ', line: 'ENABLE_AUTO_IDS Y;'}
-        - { regexp: '^ENABLE_AUTO_IDS_EMAILS', line: 'ENABLE_AUTO_IDS_EMAILS Y;'}
-        - { regexp: '^AUTO_IDS_DANGER_LEVEL', line: 'AUTO_IDS_DANGER_LEVEL 3;'}
-        - { regexp: '^HOSTNAME', line: 'HOSTNAME {{ ansible_hostname }};'}
-      notify: restart psad service
+- name: Allow outgoing TCP ports
+  ansible.builtin.command: "ufw allow out {{ item }}/tcp"
+  changed_when: false
+  loop: "{{ outbound_allowed_tcp_ports }}"
 
-    - name: add logging to ufw before.rules
-      become: true
-      blockinfile:
-        dest: /etc/ufw/before.rules
-        insertbefore: "COMMIT"
-        marker: "# {mark} ANSIBLE MANAGED BLOCK"
-        block: |
-          # log all traffic so psad can analyze
-          -A INPUT -j LOG --log-tcp-options --log-prefix "[IPTABLES] "
-          -A FORWARD -j LOG --log-tcp-options --log-prefix "[IPTABLES] "
-      notify: restart ufw service
+- name: Allow outgoing UDP ports
+  ansible.builtin.command: "ufw allow out {{ item }}/udp"
+  changed_when: false
+  loop: "{{ outbound_allowed_udp_ports }}"
 
-    - name: add logging to ufw before6.rules
-      become: true
-      blockinfile:
-        dest: /etc/ufw/before6.rules
-        insertbefore: "COMMIT"
-        marker: "# {mark} ANSIBLE MANAGED BLOCK"
-        block: |
-          # log all traffic so psad can analyze
-          -A INPUT -j LOG --log-tcp-options --log-prefix "[IPTABLES] "
-          -A FORWARD -j LOG --log-tcp-options --log-prefix "[IPTABLES] "
-      notify: restart ufw service
-
-    - name: update psad signatures
-      become: true
-      shell: |
-        psad --sig-update
-
-    - name: configure fail2ban
-      become: true
-      blockinfile:
-        path: /etc/fail2ban/jail.local
-        block: |
-          [DEFAULT]
-          # the IP address range we want to ignore
-          ignoreip = 127.0.0.1/8 
-
-          # who to send e-mail to
-          destemail = {{ mail_to }}
-
-          # who is the email from
-          sender = {{ mail_from }}
-
-          # since we're using exim4 to send emails
-          mta = mail
-
-          # get email alerts
-          action = %(action_mwl)s
-        create: true
-      notify: restart fail2ban service
-
-    - name: fail2ban - configure ssh jail 
-      become: true
-      blockinfile:
-        path: /etc/fail2ban/jail.d/ssh.local
-        block: |
-          [sshd]
-          enabled = true
-          banaction = ufw
-          port = {{ ssh_port }}
-          filter = sshd
-          logpath = %(sshd_log)s
-          maxretry = 5
-        create: true
-      notify: restart fail2ban service
-
+- name: Enable UFW
+  ansible.builtin.command: ufw --force enable
+  changed_when: false

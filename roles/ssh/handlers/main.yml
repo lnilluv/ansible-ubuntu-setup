@@ -1,5 +1,8 @@
-    - name: restart ssh service
-      become: yes
-      service: 
-        name: ssh
-        state: restarted
+- name: validate ssh config
+  ansible.builtin.command: sshd -t
+  changed_when: false
+
+- name: restart ssh service
+  ansible.builtin.service:
+    name: ssh
+    state: restarted

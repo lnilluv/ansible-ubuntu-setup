@@ -1,17 +1,2 @@
-    - name: Main-Playbook
-      hosts: debian-server
-      remote_user: "{{ user_name }}"
-      gather_facts: yes
-      vars_files: ./group_vars/variables.yml
-
-      roles:
-        - packages
-        - ssh
-        - password-quality
-        - unattended-upgrades
-        - firewall
-        - mail
-        - clamav
-        - rkhunter
-        - auditd
-        - lynis
+- import_playbook: bootstrap-playbook.yml
+- import_playbook: lockdown-playbook.yml

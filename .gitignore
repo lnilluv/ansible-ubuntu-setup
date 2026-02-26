@@ -1,2 +1,4 @@
 group_vars/variables.yml
 .worktrees/
+.vault_pass.txt
+group_vars/all.vault.yml

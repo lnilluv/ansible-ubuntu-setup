@@ -1,0 +1,44 @@
+- name: Add Tailscale GPG key
+  ansible.builtin.shell: |
+    set -euo pipefail
+    mkdir -p /usr/share/keyrings
+    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/tailscale-archive-keyring.gpg
+
+- name: Add Tailscale apt source
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/tailscale.list
+    content: "deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu jammy main\n"
+    mode: "0644"
+
+- name: Install tailscale package
+  ansible.builtin.apt:
+    update_cache: true
+    name: tailscale
+    state: present
+
+- name: Enable and start tailscaled service
+  ansible.builtin.service:
+    name: tailscaled
+    enabled: true
+    state: started
+
+- name: Bring node into tailnet
+  ansible.builtin.command: >-
+    tailscale up --authkey={{ tailscale_authkey }} --ssh
+    {% if tailscale_advertise_tags | length > 0 %} --advertise-tags={{ tailscale_advertise_tags | join(',') }}{% endif %}
+    {{ tailscale_stateful_args }}
+  register: tailscale_up
+  changed_when: "'Success.' in tailscale_up.stdout or 'Logged in' in tailscale_up.stdout"
+
+- name: Query tailscale status
+  ansible.builtin.command: tailscale ip -4
+  register: tailscale_ipv4
+  changed_when: false
+
+- name: Ensure tailscale address exists
+  ansible.builtin.assert:
+    that:
+      - tailscale_ipv4.stdout is match('^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$')
+    fail_msg: "Tailscale did not provide an IPv4 address."

@@ -1,0 +1,35 @@
+- name: Ensure host is Ubuntu 22.04
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == "Ubuntu"
+      - ansible_distribution_version is version('22.04', '>=')
+    fail_msg: "This playbook supports Ubuntu 22.04 and newer only."
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Upgrade installed packages
+  ansible.builtin.apt:
+    upgrade: dist
+
+- name: Install baseline packages
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - apt-listchanges
+      - auditd
+      - audispd-plugins
+      - libpam-pwquality
+    state: present
+
+- name: Set timezone
+  ansible.builtin.command: "timedatectl set-timezone {{ timezone }}"
+  changed_when: false
