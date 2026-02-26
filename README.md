@@ -23,6 +23,13 @@ This means final SSH access is Tailscale-only.
 - Tailscale auth key (ephemeral recommended).
 - Existing bootstrap SSH private key for initial login.
 
+Install Ansible and required collection on macOS:
+
+```bash
+python3 -m pip install --user ansible
+ansible-galaxy collection install ansible.posix
+```
+
 ## Configuration
 
 Base defaults live in `group_vars/all.yml`.
