@@ -88,6 +88,21 @@ class HardeningLayoutTest(unittest.TestCase):
         self.assertIn("password fallback", content)
         self.assertIn("bootstrap_root_password", content)
 
+    def test_main_playbook_orchestrates_tailnet_lockdown(self) -> None:
+        content = (ROOT / "main-playbook.yml").read_text(encoding="utf-8")
+        self.assertIn("add_host", content)
+        self.assertIn("lockdown_targets", content)
+        self.assertIn("tailscale status --json", content)
+        self.assertIn("DNSName", content)
+
+    def test_tailscale_role_defines_hostname(self) -> None:
+        content = (ROOT / "roles" / "tailscale" / "tasks" / "main.yml").read_text(encoding="utf-8")
+        self.assertIn("--hostname=", content)
+
+    def test_group_vars_include_tailscale_hostname(self) -> None:
+        content = (ROOT / "group_vars" / "all.example.yml").read_text(encoding="utf-8")
+        self.assertIn("tailscale_hostname:", content)
+
 
 if __name__ == "__main__":
     unittest.main()

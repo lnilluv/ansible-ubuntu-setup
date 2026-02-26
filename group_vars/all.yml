@@ -6,6 +6,7 @@ bootstrap_command_timeout_seconds: 20
 admin_user: devops
 ssh_port: 22
 tailscale_ssh_cidr: 100.64.0.0/10
+tailscale_hostname: portfolio-vps
 timezone: UTC
 install_portfolio_runtime: true
 portfolio_dev_packages:

@@ -59,9 +59,25 @@ Required runtime values:
 - `bootstrap_command_timeout_seconds`: timeout used for early bootstrap checks.
 - `bootstrap_ssh_private_key_path`: private key path for initial SSH.
 - `bootstrap_root_password`: root password for password fallback.
+- `tailscale_hostname`: node name assigned during `tailscale up`.
 - `tailscale_authkey`: auth key used by `tailscale up`.
 
 ## Usage
+
+Recommended one-shot run (bootstrap + automatic switch to Tailscale endpoint + lockdown):
+
+```bash
+ansible-playbook -i hosts.yml main-playbook.yml \
+  -e target_vps_ip="203.0.113.10" \
+  -e bootstrap_allowed_ip="198.51.100.25" \
+  -e bootstrap_auth_method="key" \
+  -e ssh_pubkey_path="/Users/you/.ssh/id_ed25519.pub" \
+  -e bootstrap_ssh_private_key_path="/Users/you/.ssh/id_ed25519" \
+  -e tailscale_authkey="tskey-ephemeral-xxxxx"
+```
+
+`main-playbook.yml` discovers the node Tailnet DNS name from `tailscale status --json`
+and uses that host for the lockdown phase (with IPv4 fallback when DNS name is unavailable).
 
 Run bootstrap:
 

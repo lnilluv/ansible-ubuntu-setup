@@ -28,6 +28,7 @@
 - name: Bring node into tailnet
   ansible.builtin.command: >-
     tailscale up --authkey={{ tailscale_authkey }} --ssh
+    --hostname={{ tailscale_hostname }}
     {% if tailscale_advertise_tags | length > 0 %} --advertise-tags={{ tailscale_advertise_tags | join(',') }}{% endif %}
     {{ tailscale_stateful_args }}
   register: tailscale_up
