@@ -1,4 +1,79 @@
-Fork of ["How-To-Secure-A-Linux-Server-With-Ansible"](https://github.com/moltenbit/How-To-Secure-A-Linux-Server-With-Ansible) modified for use from MacOS host.
+# Ubuntu 22.04 VPS Hardening with Ansible (Tailscale-only SSH)
 
-Added tailscale VPN
-Added crowdsec
+This project hardens an Ubuntu 22.04 VPS from a macOS control host using a two-phase workflow.
+
+## Security model
+
+- Phase 1 (`bootstrap-playbook.yml`):
+  - connect to VPS public IP,
+  - allow SSH only from your current public IP (`bootstrap_allowed_ip`),
+  - create admin user with SSH key,
+  - install and join Tailscale.
+- Phase 2 (`lockdown-playbook.yml`):
+  - verify Tailscale connectivity,
+  - remove public SSH allow rule,
+  - keep SSH access only through `tailscale0` policy.
+
+This means final SSH access is Tailscale-only.
+
+## Requirements
+
+- macOS host with Python 3 and Ansible installed.
+- Target VPS running Ubuntu 22.04.
+- Tailscale auth key (ephemeral recommended).
+- Existing bootstrap SSH private key for initial login.
+
+## Configuration
+
+Base defaults live in `group_vars/all.yml`.
+
+Copy `group_vars/all.example.yml` values into runtime parameters. Do not commit secrets.
+
+Required runtime values:
+
+- `target_vps_ip`: public IP of the VPS.
+- `bootstrap_allowed_ip`: your current public IP that can SSH during bootstrap.
+- `ssh_pubkey_path`: path to your public key on macOS host.
+- `bootstrap_ssh_private_key_path`: private key path for initial SSH.
+- `tailscale_authkey`: auth key used by `tailscale up`.
+
+## Usage
+
+Run bootstrap:
+
+```bash
+ansible-playbook -i hosts.yml bootstrap-playbook.yml \
+  -e target_vps_ip="203.0.113.10" \
+  -e bootstrap_allowed_ip="198.51.100.25" \
+  -e ssh_pubkey_path="/Users/you/.ssh/id_ed25519.pub" \
+  -e bootstrap_ssh_private_key_path="/Users/you/.ssh/id_ed25519" \
+  -e tailscale_authkey="tskey-ephemeral-xxxxx"
+```
+
+Run lockdown:
+
+```bash
+ansible-playbook -i hosts.yml lockdown-playbook.yml \
+  -e target_vps_ip="203.0.113.10" \
+  -e bootstrap_allowed_ip="198.51.100.25" \
+  -e bootstrap_ssh_private_key_path="/Users/you/.ssh/id_ed25519"
+```
+
+Optional compatibility wrapper:
+
+```bash
+ansible-playbook -i hosts.yml main-playbook.yml -e ...
+```
+
+## Recovery / rollback
+
+If you lose Tailscale connectivity, use the VPS provider console to:
+
+1. temporarily disable UFW (`ufw disable`) or add temporary public SSH allow rule,
+2. restart `tailscaled` and verify `tailscale ip -4`,
+3. rerun `lockdown-playbook.yml`.
+
+## Notes
+
+- `group_vars/all.vault.yml` is intended for secrets via `ansible-vault`.
+- `.gitignore` blocks local secret files and worktrees.
