@@ -7,9 +7,9 @@
   vars:
     hardening_phase: bootstrap
     ansible_user: "{{ bootstrap_user | default('root') }}"
-    ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path if bootstrap_auth_method in ['auto', 'key'] and (bootstrap_ssh_private_key_path | length > 0) else omit }}"
-    ansible_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else omit }}"
-    ansible_become_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else omit }}"
+    ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path if bootstrap_auth_method in ['auto', 'key'] and (bootstrap_ssh_private_key_path | length > 0) else '' }}"
+    ansible_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else '' }}"
+    ansible_become_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else '' }}"
   pre_tasks:
     - name: Ensure required bootstrap variables are present
       ansible.builtin.assert:
