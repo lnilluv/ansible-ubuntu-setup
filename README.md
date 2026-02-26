@@ -16,6 +16,12 @@ This project hardens an Ubuntu 22.04 VPS from a macOS control host using a two-p
 
 This means final SSH access is Tailscale-only.
 
+Bootstrap supports key-first with password fallback. Set `bootstrap_auth_method` to:
+
+- `auto` (default): use key when provided, and password fallback when provided.
+- `key`: require SSH private key path only.
+- `password`: require root password only.
+
 ## Requirements
 
 - macOS host with Python 3 and Ansible installed.
@@ -49,7 +55,9 @@ Required runtime values:
 - `target_vps_ip`: public IP of the VPS.
 - `bootstrap_allowed_ip`: your current public IP that can SSH during bootstrap.
 - `ssh_pubkey_path`: path to your public key on macOS host.
+- `bootstrap_auth_method`: `auto`, `key`, or `password`.
 - `bootstrap_ssh_private_key_path`: private key path for initial SSH.
+- `bootstrap_root_password`: root password for password fallback.
 - `tailscale_authkey`: auth key used by `tailscale up`.
 
 ## Usage
@@ -60,8 +68,21 @@ Run bootstrap:
 ansible-playbook -i hosts.yml bootstrap-playbook.yml \
   -e target_vps_ip="203.0.113.10" \
   -e bootstrap_allowed_ip="198.51.100.25" \
+  -e bootstrap_auth_method="key" \
   -e ssh_pubkey_path="/Users/you/.ssh/id_ed25519.pub" \
   -e bootstrap_ssh_private_key_path="/Users/you/.ssh/id_ed25519" \
+  -e tailscale_authkey="tskey-ephemeral-xxxxx"
+```
+
+Run bootstrap with password fallback:
+
+```bash
+ansible-playbook -i hosts.yml bootstrap-playbook.yml \
+  -e target_vps_ip="203.0.113.10" \
+  -e bootstrap_allowed_ip="198.51.100.25" \
+  -e bootstrap_auth_method="password" \
+  -e ssh_pubkey_path="/Users/you/.ssh/id_ed25519.pub" \
+  -e bootstrap_root_password="your-root-password" \
   -e tailscale_authkey="tskey-ephemeral-xxxxx"
 ```
 
@@ -71,6 +92,7 @@ Run lockdown:
 ansible-playbook -i hosts.yml lockdown-playbook.yml \
   -e target_vps_ip="203.0.113.10" \
   -e bootstrap_allowed_ip="198.51.100.25" \
+  -e bootstrap_auth_method="key" \
   -e bootstrap_ssh_private_key_path="/Users/you/.ssh/id_ed25519"
 ```
 

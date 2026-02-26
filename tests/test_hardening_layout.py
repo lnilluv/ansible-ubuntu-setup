@@ -60,6 +60,26 @@ class HardeningLayoutTest(unittest.TestCase):
         self.assertIn("docker compose", content)
         self.assertIn("python3-venv", content)
 
+    def test_auth_mode_variables_are_documented(self) -> None:
+        content = (ROOT / "group_vars" / "all.example.yml").read_text(encoding="utf-8")
+        self.assertIn("bootstrap_auth_method:", content)
+        self.assertIn("bootstrap_root_password:", content)
+
+    def test_bootstrap_playbook_supports_password_fallback(self) -> None:
+        content = (ROOT / "bootstrap-playbook.yml").read_text(encoding="utf-8")
+        self.assertIn("bootstrap_auth_method", content)
+        self.assertIn("ansible_password", content)
+
+    def test_requirements_playbook_supports_password_fallback(self) -> None:
+        content = (ROOT / "requirements-playbook.yml").read_text(encoding="utf-8")
+        self.assertIn("bootstrap_auth_method", content)
+        self.assertIn("ansible_password", content)
+
+    def test_readme_mentions_password_bootstrap_flow(self) -> None:
+        content = (ROOT / "README.md").read_text(encoding="utf-8").lower()
+        self.assertIn("password fallback", content)
+        self.assertIn("bootstrap_root_password", content)
+
 
 if __name__ == "__main__":
     unittest.main()

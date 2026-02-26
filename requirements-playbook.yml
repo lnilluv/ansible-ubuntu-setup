@@ -7,7 +7,18 @@
   vars:
     hardening_phase: bootstrap
     ansible_user: "{{ bootstrap_user | default('root') }}"
-    ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path }}"
+    ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path if bootstrap_auth_method in ['auto', 'key'] and (bootstrap_ssh_private_key_path | length > 0) else omit }}"
+    ansible_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else omit }}"
+    ansible_become_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else omit }}"
+  pre_tasks:
+    - name: Ensure bootstrap auth variables are valid
+      ansible.builtin.assert:
+        that:
+          - bootstrap_auth_method in ['auto', 'key', 'password']
+          - (bootstrap_auth_method != 'key') or (bootstrap_ssh_private_key_path | length > 0)
+          - (bootstrap_auth_method != 'password') or (bootstrap_root_password | length > 0)
+          - (bootstrap_auth_method != 'auto') or ((bootstrap_ssh_private_key_path | length > 0) or (bootstrap_root_password | length > 0))
+        fail_msg: "Set bootstrap auth inputs for key/password mode before running requirements-playbook."
   roles:
     - role: base_ubuntu_2204
     - role: admin_user

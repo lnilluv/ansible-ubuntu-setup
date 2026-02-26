@@ -1,6 +1,7 @@
 # Non-sensitive defaults only.
 bootstrap_user: root
 bootstrap_ssh_port: 22
+bootstrap_auth_method: auto
 admin_user: devops
 ssh_port: 22
 tailscale_ssh_cidr: 100.64.0.0/10
@@ -28,3 +29,4 @@ bootstrap_allowed_ip: ""
 ssh_pubkey_path: ""
 tailscale_authkey: ""
 bootstrap_ssh_private_key_path: ""
+bootstrap_root_password: ""

@@ -7,16 +7,21 @@
   vars:
     hardening_phase: bootstrap
     ansible_user: "{{ bootstrap_user | default('root') }}"
-    ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path }}"
+    ansible_ssh_private_key_file: "{{ bootstrap_ssh_private_key_path if bootstrap_auth_method in ['auto', 'key'] and (bootstrap_ssh_private_key_path | length > 0) else omit }}"
+    ansible_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else omit }}"
+    ansible_become_password: "{{ bootstrap_root_password if bootstrap_auth_method in ['auto', 'password'] and (bootstrap_root_password | length > 0) else omit }}"
   pre_tasks:
     - name: Ensure required bootstrap variables are present
       ansible.builtin.assert:
         that:
+          - bootstrap_auth_method in ['auto', 'key', 'password']
           - target_vps_ip | length > 0
           - bootstrap_allowed_ip | length > 0
           - ssh_pubkey_path | length > 0
           - tailscale_authkey | length > 0
-          - bootstrap_ssh_private_key_path | length > 0
+          - (bootstrap_auth_method != 'key') or (bootstrap_ssh_private_key_path | length > 0)
+          - (bootstrap_auth_method != 'password') or (bootstrap_root_password | length > 0)
+          - (bootstrap_auth_method != 'auto') or ((bootstrap_ssh_private_key_path | length > 0) or (bootstrap_root_password | length > 0))
         fail_msg: "Missing required runtime variables. See README.md for the required -e values."
   roles:
     - role: base_ubuntu_2204
